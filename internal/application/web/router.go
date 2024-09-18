@@ -1,0 +1,149 @@
+package application
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"strconv"
+	"strings"
+
+	"github.com/bary822/gomemon-server/internal/controller"
+	"github.com/bary822/gomemon-server/internal/interactor"
+	repository "github.com/bary822/gomemon-server/internal/repository"
+)
+
+type WebRouter struct {
+	create_memo_handler    *CreateMemoHandler
+	get_memo_by_id_handler *GetMemoByIDHandler
+}
+
+// interfaceとしてのMemoRepositoryと名前がカブるのでMemoStorageと命名しておく
+// 実態はMemoRepositoryだけをメンバに持つ単純な構造体
+type MemoStorage struct {
+	// 具象クラス(MemoInMemoryRepository)ではなく、抽象クラス(MemoRepository interface)に依存させているのがポイント
+	repository repository.MemoRepository
+}
+
+type CreateMemoHandler struct {
+	controller controller.MemoController
+}
+
+type GetMemoByIDHandler struct {
+	controller controller.MemoController
+}
+
+func (h *CreateMemoHandler) NewCreateMemoHandler(s MemoStorage) *CreateMemoHandler {
+	// DI
+	usecase := interactor.NewMemoCreateInteractor(s.repository)
+	controller := controller.NewCreateMemoController(usecase)
+
+	return &CreateMemoHandler{
+		controller: controller,
+	}
+}
+
+func (h *GetMemoByIDHandler) NewGetMemoByIDHandler(s MemoStorage) *GetMemoByIDHandler {
+	// DI
+	usecase := interactor.NewMemoGetByIDInteractor(s.repository)
+	controller := controller.NewGetMemoByIDController(usecase)
+
+	return &GetMemoByIDHandler{
+		controller: controller,
+	}
+}
+
+func (h *CreateMemoHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	if jsonBody, err := parseJSON(*r); !errors.Is(err, nil) {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Print(err)
+		fmt.Fprintln(w, "{}")
+	} else {
+		memoContent := jsonBody["content"].(string)
+		memo_res := h.controller.CreateMemo(memoContent)
+
+		if json, err := json.Marshal(memo_res); !errors.Is(err, nil) {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Print(err)
+			fmt.Fprintln(w, "{}")
+		} else {
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintln(w, string(json))
+		}
+	}
+}
+
+func (h *GetMemoByIDHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	id := strings.TrimPrefix(r.URL.Path, "/memos/")
+	if id == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintln(w, "{}")
+	} else {
+		memo_res := h.controller.GetMemoByID(id)
+		if memo_res.MemoID == "" {
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprintln(w, "{}")
+		}
+
+		if json, err := json.Marshal(memo_res); !errors.Is(err, nil) {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintln(w, "{}")
+		} else {
+			fmt.Fprintln(w, string(json))
+		}
+	}
+}
+
+func (wr *WebRouter) HandleMemos(w http.ResponseWriter, r *http.Request) {
+	log.Println("Received request in " + r.URL.Path)
+
+	switch r.Method {
+	case http.MethodPost:
+		wr.create_memo_handler.Handle(w, r)
+	case http.MethodGet:
+		wr.get_memo_by_id_handler.Handle(w, r)
+	}
+}
+
+func (wr *WebRouter) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("/memos", wr.HandleMemos)
+	mux.HandleFunc("/memos/", wr.HandleMemos)
+}
+
+func parseJSON(r http.Request) (map[string]any, error) {
+	if r.Header.Get("Content-Type") != "application/json" {
+		err := errors.New("Content-Type must be 'application/json'.")
+		return nil, err
+	}
+
+	//To allocate slice for request body
+	length, err := strconv.Atoi(r.Header.Get("Content-Length"))
+	if err != nil {
+		err := errors.New("Content-Length must be present.")
+		return nil, err
+	}
+
+	//Read body data to parse json
+	body := make([]byte, length)
+	length, err = r.Body.Read(body)
+	if err != nil && err != io.EOF {
+		err := errors.New("Something went wrong while reading request body")
+		return nil, err
+	}
+
+	//parse json
+	var jsonBody map[string]interface{}
+	err = json.Unmarshal(body[:length], &jsonBody)
+	if err != nil {
+		err := errors.New("Something went wrong while parsing body")
+		return nil, err
+	}
+
+	return jsonBody, nil
+}
