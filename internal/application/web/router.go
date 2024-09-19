@@ -18,6 +18,7 @@ import (
 type WebRouter struct {
 	create_memo_handler    *CreateMemoHandler
 	get_memo_by_id_handler *GetMemoByIDHandler
+	get_all_memos_handler  *GetAllMemosHandler
 }
 
 // interfaceとしてのMemoRepositoryと名前がカブるのでMemoStorageと命名しておく
@@ -32,6 +33,10 @@ type CreateMemoHandler struct {
 }
 
 type GetMemoByIDHandler struct {
+	controller controller.MemoController
+}
+
+type GetAllMemosHandler struct {
 	controller controller.MemoController
 }
 
@@ -51,6 +56,16 @@ func (h *GetMemoByIDHandler) NewGetMemoByIDHandler(s MemoStorage) *GetMemoByIDHa
 	controller := controller.NewGetMemoByIDController(usecase)
 
 	return &GetMemoByIDHandler{
+		controller: controller,
+	}
+}
+
+func (h *GetAllMemosHandler) NewGetAllMemosHandler(s MemoStorage) *GetAllMemosHandler {
+	// DI
+	usecase := interactor.NewMemoGetAllInteractor(s.repository)
+	controller := controller.NewGetAllMemosController(usecase)
+
+	return &GetAllMemosHandler{
 		controller: controller,
 	}
 }
@@ -100,12 +115,33 @@ func (h *GetMemoByIDHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *GetAllMemosHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	memos_res := h.controller.GetAllMemos()
+	if json, err := json.Marshal(memos_res); !errors.Is(err, nil) {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintln(w, "{}")
+	} else {
+		fmt.Fprintln(w, string(json))
+	}
+}
+
 func (wr *WebRouter) HandleMemos(w http.ResponseWriter, r *http.Request) {
-	log.Println("Received request in " + r.URL.Path)
+	log.Println("Received request " + r.Method + ": " + r.URL.Path)
 
 	switch r.Method {
 	case http.MethodPost:
 		wr.create_memo_handler.Handle(w, r)
+	case http.MethodGet:
+		wr.get_all_memos_handler.Handle(w, r)
+	}
+}
+
+func (wr *WebRouter) HandleMemo(w http.ResponseWriter, r *http.Request) {
+	log.Println("Received request " + r.Method + ": " + r.URL.Path)
+
+	switch r.Method {
 	case http.MethodGet:
 		wr.get_memo_by_id_handler.Handle(w, r)
 	}
@@ -113,7 +149,7 @@ func (wr *WebRouter) HandleMemos(w http.ResponseWriter, r *http.Request) {
 
 func (wr *WebRouter) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/memos", wr.HandleMemos)
-	mux.HandleFunc("/memos/", wr.HandleMemos)
+	mux.HandleFunc("/memos/", wr.HandleMemo)
 }
 
 func parseJSON(r http.Request) (map[string]any, error) {

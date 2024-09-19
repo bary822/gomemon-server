@@ -14,6 +14,7 @@ func (wl WebLauncher) Launch() {
 
 	create_memo_handler := CreateMemoHandler{}
 	get_memo_by_id_handler := GetMemoByIDHandler{}
+	get_all_memos_handler := GetAllMemosHandler{}
 
 	// DI
 	memo_repository := MemoStorage{
@@ -23,6 +24,7 @@ func (wl WebLauncher) Launch() {
 	router := WebRouter{
 		create_memo_handler:    create_memo_handler.NewCreateMemoHandler(memo_repository),
 		get_memo_by_id_handler: get_memo_by_id_handler.NewGetMemoByIDHandler(memo_repository),
+		get_all_memos_handler:  get_all_memos_handler.NewGetAllMemosHandler(memo_repository),
 	}
 	router.RegisterRoutes(mux)
 
