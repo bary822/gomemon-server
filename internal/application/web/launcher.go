@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	in_memory_repository "github.com/bary822/gomemon-server/internal/repository/in_memory"
+	file_repository "github.com/bary822/gomemon-server/internal/repository/file"
 )
 
 type WebLauncher struct{}
@@ -18,7 +18,7 @@ func (wl WebLauncher) Launch() {
 
 	// DI
 	memo_repository := MemoStorage{
-		repository: in_memory_repository.NewMemoInMemoryRepository(),
+		repository: file_repository.NewMemoFileRepository(),
 	}
 
 	router := WebRouter{
