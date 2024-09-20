@@ -18,7 +18,9 @@ type MemoFileRepository struct {
 }
 
 func NewMemoFileRepository() *MemoFileRepository {
-	return &MemoFileRepository{}
+	return &MemoFileRepository{
+		memos: make([]*entity.Memo, 0),
+	}
 }
 
 func (repo *MemoFileRepository) Save(memo entity.Memo) (*entity.Memo, error) {
@@ -48,7 +50,7 @@ func (repo *MemoFileRepository) GetAll() ([]*entity.Memo, error) {
 }
 
 func (repo *MemoFileRepository) save() error {
-	f, err := os.Create(FilePath)
+	f, err := os.OpenFile(FilePath, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return err
 	}
@@ -64,6 +66,15 @@ func (repo *MemoFileRepository) save() error {
 func (repo *MemoFileRepository) load() error {
 	f, err := os.OpenFile(FilePath, os.O_RDWR|os.O_CREATE, 0644)
 	defer f.Close()
+
+	// Initialize file content if it does not exist.
+	fi, err := f.Stat()
+	if err != nil {
+		log.Fatal("Failed to examine file: " + err.Error())
+	}
+	if fi.Size() == 0 {
+		repo.save()
+	}
 
 	if err != nil {
 		log.Fatal("Failed to open file: " + err.Error())
