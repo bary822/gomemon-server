@@ -72,6 +72,7 @@ func (h *GetAllMemosHandler) NewGetAllMemosHandler(s MemoStorage) *GetAllMemosHa
 
 func (h *CreateMemoHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	if jsonBody, err := parseJSON(*r); !errors.Is(err, nil) {
 		w.WriteHeader(http.StatusBadRequest)
@@ -94,6 +95,7 @@ func (h *CreateMemoHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 func (h *GetMemoByIDHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	id := strings.TrimPrefix(r.URL.Path, "/memos/")
 	if id == "" {
@@ -117,6 +119,7 @@ func (h *GetMemoByIDHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 func (h *GetAllMemosHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	memos_res := h.controller.GetAllMemos()
 	if json, err := json.Marshal(memos_res); !errors.Is(err, nil) {
