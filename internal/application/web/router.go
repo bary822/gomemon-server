@@ -156,11 +156,6 @@ func (wr *WebRouter) RegisterRoutes(mux *http.ServeMux) {
 }
 
 func parseJSON(r http.Request) (map[string]any, error) {
-	if r.Header.Get("Content-Type") != "application/json" {
-		err := errors.New("Content-Type must be 'application/json'.")
-		return nil, err
-	}
-
 	//To allocate slice for request body
 	length, err := strconv.Atoi(r.Header.Get("Content-Length"))
 	if err != nil {
