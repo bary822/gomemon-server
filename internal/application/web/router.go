@@ -95,7 +95,6 @@ func (h *CreateMemoHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 func (h *GetMemoByIDHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	id := strings.TrimPrefix(r.URL.Path, "/memos/")
 	if id == "" {
@@ -119,7 +118,6 @@ func (h *GetMemoByIDHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 func (h *GetAllMemosHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	memos_res := h.controller.GetAllMemos()
 	if json, err := json.Marshal(memos_res); !errors.Is(err, nil) {
@@ -127,6 +125,20 @@ func (h *GetAllMemosHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "{}")
 	} else {
 		fmt.Fprintln(w, string(json))
+	}
+}
+
+func HandleCORSPreflight(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+
+			next.ServeHTTP(w, r)
+		}
 	}
 }
 
@@ -151,8 +163,8 @@ func (wr *WebRouter) HandleMemo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (wr *WebRouter) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/memos", wr.HandleMemos)
-	mux.HandleFunc("/memos/", wr.HandleMemo)
+	mux.HandleFunc("/memos", HandleCORSPreflight(wr.HandleMemos))
+	mux.HandleFunc("/memos/", HandleCORSPreflight(wr.HandleMemo))
 }
 
 func parseJSON(r http.Request) (map[string]any, error) {
