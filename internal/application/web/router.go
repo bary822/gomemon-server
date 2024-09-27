@@ -136,9 +136,9 @@ func HandleCORSPreflight(next http.HandlerFunc) http.HandlerFunc {
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
-
-			next.ServeHTTP(w, r)
 		}
+
+		next.ServeHTTP(w, r)
 	}
 }
 
@@ -168,6 +168,11 @@ func (wr *WebRouter) RegisterRoutes(mux *http.ServeMux) {
 }
 
 func parseJSON(r http.Request) (map[string]any, error) {
+	if r.Header.Get("Content-Type") != "application/json" {
+		err := errors.New("Content-Type must be 'application/json'.")
+		return nil, err
+	}
+
 	//To allocate slice for request body
 	length, err := strconv.Atoi(r.Header.Get("Content-Length"))
 	if err != nil {
