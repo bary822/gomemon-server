@@ -22,3 +22,8 @@ func (repo *MemoMySqlRepository) GetAll() ([]*entity.Memo, error) {
 	// TODO: implement
 	return []*entity.Memo{}, nil
 }
+
+func (repo *MemoMySqlRepository) Delete() error {
+	// TODO: implement
+	return nil
+}

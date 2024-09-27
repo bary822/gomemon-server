@@ -49,6 +49,28 @@ func (repo *MemoFileRepository) GetAll() ([]*entity.Memo, error) {
 	return repo.memos, nil
 }
 
+func (repo *MemoFileRepository) Delete(id string) error {
+	repo.load()
+
+	var del_index *int
+
+	for i, memo := range repo.memos {
+		if memo.ID == id {
+			del_index = &i
+			break
+		}
+	}
+
+	if del_index == nil {
+		return errors.New("Memo to delete not found")
+	}
+
+	repo.memos = append(repo.memos[:*del_index], repo.memos[*del_index+1:]...)
+	repo.save()
+
+	return nil
+}
+
 func (repo *MemoFileRepository) save() error {
 	f, err := os.OpenFile(FilePath, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {

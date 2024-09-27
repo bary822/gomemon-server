@@ -6,6 +6,7 @@ type MemoController struct {
 	memoCreateUsecase  usecase.MemoCreateUseCase
 	memoGetByIDUsecase usecase.MemoGetByIDUseCase
 	memoGetAllUseCase  usecase.MemoGetAllUseCase
+	memoDeleteUseCase  usecase.MemoDeleteUseCase
 }
 
 func NewCreateMemoController(uc_memo_create usecase.MemoCreateUseCase) MemoController {
@@ -26,6 +27,12 @@ func NewGetAllMemosController(uc_get_all_memo usecase.MemoGetAllUseCase) MemoCon
 	}
 }
 
+func NewDeleteMemoController(uc_delete_memo usecase.MemoDeleteUseCase) MemoController {
+	return MemoController{
+		memoDeleteUseCase: uc_delete_memo,
+	}
+}
+
 func (c MemoController) CreateMemo(content string) usecase.MemoCreateResponse {
 	req := usecase.MemoCreateRequest{Content: content}
 	return c.memoCreateUsecase.Handle(req)
@@ -39,4 +46,9 @@ func (c MemoController) GetMemoByID(id string) usecase.MemoGetByIDResponse {
 func (c MemoController) GetAllMemos() usecase.MemoGetAllResponse {
 	req := usecase.MemoGetAllRequest{}
 	return c.memoGetAllUseCase.Handle(req)
+}
+
+func (c MemoController) DeleteMemo(id string) usecase.MemoDeleteResponse {
+	req := usecase.MemoDeleteRequest{ID: id}
+	return c.memoDeleteUseCase.Handle(req)
 }

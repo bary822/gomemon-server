@@ -19,6 +19,7 @@ type WebRouter struct {
 	create_memo_handler    *CreateMemoHandler
 	get_memo_by_id_handler *GetMemoByIDHandler
 	get_all_memos_handler  *GetAllMemosHandler
+	delete_memo_handler    *DeleteMemoHandler
 }
 
 // interfaceとしてのMemoRepositoryと名前がカブるのでMemoStorageと命名しておく
@@ -37,6 +38,10 @@ type GetMemoByIDHandler struct {
 }
 
 type GetAllMemosHandler struct {
+	controller controller.MemoController
+}
+
+type DeleteMemoHandler struct {
 	controller controller.MemoController
 }
 
@@ -66,6 +71,16 @@ func (h *GetAllMemosHandler) NewGetAllMemosHandler(s MemoStorage) *GetAllMemosHa
 	controller := controller.NewGetAllMemosController(usecase)
 
 	return &GetAllMemosHandler{
+		controller: controller,
+	}
+}
+
+func (h *DeleteMemoHandler) NewDeleteMemoHandler(s MemoStorage) *DeleteMemoHandler {
+	// DI
+	usecase := interactor.NewMemoDeleteInteractor(s.repository)
+	controller := controller.NewDeleteMemoController(usecase)
+
+	return &DeleteMemoHandler{
 		controller: controller,
 	}
 }
@@ -128,6 +143,25 @@ func (h *GetAllMemosHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *DeleteMemoHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	id := strings.TrimPrefix(r.URL.Path, "/memos/")
+	if id == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintln(w, "{}")
+	} else {
+		memo_res := h.controller.DeleteMemo(id)
+		if memo_res.IsSuccess {
+			w.WriteHeader(http.StatusNoContent)
+			fmt.Fprintln(w, "{}")
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintln(w, "{}")
+		}
+	}
+}
+
 func HandleCORSPreflight(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
@@ -159,6 +193,8 @@ func (wr *WebRouter) HandleMemo(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		wr.get_memo_by_id_handler.Handle(w, r)
+	case http.MethodDelete:
+		wr.delete_memo_handler.Handle(w, r)
 	}
 }
 

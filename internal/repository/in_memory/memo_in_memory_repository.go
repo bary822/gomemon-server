@@ -35,3 +35,17 @@ func (repo *MemoInMemoryRepository) GetByID(id string) (*entity.Memo, error) {
 func (repo *MemoInMemoryRepository) GetAll() ([]*entity.Memo, error) {
 	return repo.memos, nil
 }
+
+func (repo *MemoInMemoryRepository) Delete(id string) error {
+	var del_index int
+
+	for i, memo := range repo.memos {
+		if memo.ID == id {
+			del_index = i
+		}
+	}
+
+	repo.memos = append(repo.memos[:del_index], repo.memos[del_index+1:]...)
+
+	return nil
+}
