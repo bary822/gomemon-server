@@ -20,6 +20,7 @@ type WebRouter struct {
 	get_memo_by_id_handler *GetMemoByIDHandler
 	get_all_memos_handler  *GetAllMemosHandler
 	delete_memo_handler    *DeleteMemoHandler
+	edit_memo_handler      *EditMemoHandler
 }
 
 // interfaceとしてのMemoRepositoryと名前がカブるのでMemoStorageと命名しておく
@@ -42,6 +43,10 @@ type GetAllMemosHandler struct {
 }
 
 type DeleteMemoHandler struct {
+	controller controller.MemoController
+}
+
+type EditMemoHandler struct {
 	controller controller.MemoController
 }
 
@@ -81,6 +86,16 @@ func (h *DeleteMemoHandler) NewDeleteMemoHandler(s MemoStorage) *DeleteMemoHandl
 	controller := controller.NewDeleteMemoController(usecase)
 
 	return &DeleteMemoHandler{
+		controller: controller,
+	}
+}
+
+func (h *EditMemoHandler) NewEditMemoHandler(s MemoStorage) *EditMemoHandler {
+	// DI
+	usecase := interactor.NewMemoEditInteractor(s.repository)
+	controller := controller.NewEditMemoController(usecase)
+
+	return &EditMemoHandler{
 		controller: controller,
 	}
 }
@@ -162,6 +177,47 @@ func (h *DeleteMemoHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *EditMemoHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	id := strings.TrimPrefix(r.URL.Path, "/memos/")
+	if id == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintln(w, "{}")
+		return
+	}
+
+	jsonBody, err := parseJSON(*r)
+	if !errors.Is(err, nil) {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Print(err)
+		fmt.Fprintln(w, "{}")
+		return
+	}
+
+	if jsonBody["content"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Print("Body must contain entry 'content'")
+		fmt.Fprintln(w, "{}")
+		return
+	}
+
+	memoContent := jsonBody["content"].(string)
+	memo_res := h.controller.EditMemo(id, memoContent)
+
+	if memo_res.MemoID == "" {
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprintln(w, "{}")
+	}
+
+	if json, err := json.Marshal(memo_res); !errors.Is(err, nil) {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintln(w, "{}")
+	} else {
+		fmt.Fprintln(w, string(json))
+	}
+}
+
 func HandleCORSPreflight(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
@@ -195,6 +251,8 @@ func (wr *WebRouter) HandleMemo(w http.ResponseWriter, r *http.Request) {
 		wr.get_memo_by_id_handler.Handle(w, r)
 	case http.MethodDelete:
 		wr.delete_memo_handler.Handle(w, r)
+	case http.MethodPut:
+		wr.edit_memo_handler.Handle(w, r)
 	}
 }
 

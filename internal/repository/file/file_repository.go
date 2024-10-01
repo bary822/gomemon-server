@@ -71,6 +71,21 @@ func (repo *MemoFileRepository) Delete(id string) error {
 	return nil
 }
 
+func (repo *MemoFileRepository) Edit(id string, content string) (*entity.Memo, error) {
+	repo.load()
+
+	for _, memo := range repo.memos {
+		if memo.ID == id {
+			memo.Content = content
+			repo.save()
+
+			return memo, nil
+		}
+	}
+
+	return nil, errors.New("Memo to edit not found")
+}
+
 func (repo *MemoFileRepository) save() error {
 	f, err := os.OpenFile(FilePath, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {

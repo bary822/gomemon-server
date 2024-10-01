@@ -7,4 +7,5 @@ type MemoRepository interface {
 	GetByID(id string) (*entity.Memo, error)
 	GetAll() ([]*entity.Memo, error)
 	Delete(id string) error
+	Edit(id string, content string) (*entity.Memo, error)
 }

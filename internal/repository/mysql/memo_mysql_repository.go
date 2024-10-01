@@ -27,3 +27,8 @@ func (repo *MemoMySqlRepository) Delete() error {
 	// TODO: implement
 	return nil
 }
+
+func (repo *MemoMySqlRepository) Edit(id string, content string) (*entity.Memo, error) {
+	// TODO: implement
+	return &entity.Memo{}, nil
+}

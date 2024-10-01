@@ -49,3 +49,15 @@ func (repo *MemoInMemoryRepository) Delete(id string) error {
 
 	return nil
 }
+
+func (repo *MemoInMemoryRepository) Edit(id string, content string) (*entity.Memo, error) {
+	for _, memo := range repo.memos {
+		if memo.ID == id {
+			memo.Content = content
+
+			return memo, nil
+		}
+	}
+
+	return nil, errors.New("Memo to edit not found")
+}
