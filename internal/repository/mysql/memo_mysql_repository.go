@@ -13,7 +13,7 @@ func (repo *MemoMySqlRepository) Save(memo entity.Memo) (*entity.Memo, error) {
 	return &entity.Memo{}, nil
 }
 
-func (repo *MemoMySqlRepository) GetByID(content string) (*entity.Memo, error) {
+func (repo *MemoMySqlRepository) GetByID(id string) (*entity.Memo, error) {
 	// TODO: implement
 	return &entity.Memo{}, nil
 }
@@ -23,7 +23,7 @@ func (repo *MemoMySqlRepository) GetAll() ([]*entity.Memo, error) {
 	return []*entity.Memo{}, nil
 }
 
-func (repo *MemoMySqlRepository) Delete() error {
+func (repo *MemoMySqlRepository) Delete(id string) error {
 	// TODO: implement
 	return nil
 }
